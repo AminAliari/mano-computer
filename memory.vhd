@@ -9,7 +9,6 @@ entity memory is
 		addressbus: in std_logic_vector (15 downto 0);
     databusIn : in std_logic_vector(15 downto 0);
     databusOut : out std_logic_vector(15 downto 0);
-		databus : inout std_logic_vector (15 downto 0);
 		memdataready : out std_logic);
 end entity memory;
 
@@ -53,6 +52,8 @@ begin
 
 		if  clk'event and clk = '1' then
 			ad := to_integer(unsigned(addressbus));
+      memdataready <= '0';
+      databusOut <= (others => 'Z');
 
 			if readmem = '1' then
 				memdataready <= '1';
