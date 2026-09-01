@@ -24,8 +24,8 @@ begin
   process (clk)
   variable lindex, rindex : integer := 0;
   begin
-      lindex := to_integer(unsigned(index(3 downto 2))) + to_integer(unsigned(wp(5 downto 0)));
-      rindex := to_integer(unsigned(index(1 downto 0))) + to_integer(unsigned(wp(5 downto 0)));
+      lindex := (to_integer(unsigned(index(3 downto 2))) + to_integer(unsigned(wp(5 downto 0)))) mod 64;
+      rindex := (to_integer(unsigned(index(1 downto 0))) + to_integer(unsigned(wp(5 downto 0)))) mod 64;
 
     if rising_edge(clk) then
       if lw = '1' and hw = '0' then

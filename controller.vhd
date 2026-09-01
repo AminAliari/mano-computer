@@ -405,7 +405,13 @@ begin
           cmpOp <= '1';
           flagLoad <= '1';
           readMem <= '0';
-          nextState <= executeWriteRF;
+          if shadow = '1' then
+            nextState <= executeShadow;
+          else
+            PCPlus1 <= '1';
+            EnablePC <= '1';
+            nextState <= fetch;
+          end if;
 
         when "1111" =>
           case(instruction(9 downto 8)) is
@@ -604,7 +610,9 @@ begin
           cmpOp <= '1';
           flagLoad <= '1';
           readMem <= '0';
-          nextState <= executeWriteRFWithoutShadow;   
+          PCPlus1 <= '1';
+          EnablePC <= '1';
+          nextState <= fetch;
         when others =>
           report "[amin]: execute [shadow] others second case";
       end case;

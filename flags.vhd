@@ -13,27 +13,30 @@ entity flags is port (
 end entity flags;
 
 architecture imp of flags is
+signal cinReg, zinReg : std_logic := '0';
 
 -- implementation
 begin
+  cin <= cinReg;
+  zin <= zinReg;
+
   process (clk)
-  variable temp : std_logic_vector(5 downto 0) := "000000";
   begin
     if rising_edge(clk) then
       if load = '1' then
-        cin <= cout;
-        zin <= zout;
+        cinReg <= cout;
+        zinReg <= zout;
       else
         if creset = '1' then
-          cin <= '0';
+          cinReg <= '0';
         elsif cset = '1' then
-          cin <= '1';
+          cinReg <= '1';
         end if;
 
         if zreset = '1' then
-          zin <= '0';
+          zinReg <= '0';
         elsif zset = '1' then
-          zin <= '1';
+          zinReg <= '1';
         end if;
       end if;
     end if;
