@@ -14,9 +14,6 @@ end entity instructionRegister;
 
 architecture imp of instructionRegister is
 
--- singal 
-signal temp : std_logic_vector(5 downto 0);
-
 -- implementation
 begin
   process (clk)

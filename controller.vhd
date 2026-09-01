@@ -41,7 +41,7 @@ architecture imp of controller is
 
 -- signals
 signal currentState,nextState : std_logic_vector ( 3 downto 0);
-signal shadow, update : std_logic;
+signal shadow : std_logic;
 
 -- constants
 
@@ -100,14 +100,16 @@ begin
 end process;
 
 -- cheking if the IR contains a shadow instruction type (NOT-cases: 1111-whatever..., 0000-X where x has to be more than 6)
-shadow <= '0' when (instruction(15 downto 12) = "0000" and instruction(11 downto 8) > "0110") else '0' when instruction(15 downto 12) = "1111" else '1';
+shadow <= '0' when (instruction(15 downto 12) = "0000" and to_integer(unsigned(instruction(11 downto 8))) > 6) else
+          '0' when instruction(15 downto 12) = "1111" else '1';
 
 
-process (currentState, update)
+process (all)
 begin
 
 -- reseting flags [
   -- alu
+  bTo0 <= '0';
   andOp <= '0';
   orOp <= '0';
   notOp <= '0';
@@ -133,6 +135,7 @@ begin
   -- register file
   lw <= '0';
   hw <= '0';
+  isFromMemory <= '0';
 
   -- address unit
   ResetPC <= '0';
@@ -148,10 +151,14 @@ begin
   isAddressOnDatabus <= '0';
   isAluOnDatabus <= '0';
   writeMem <= '0';
+  readMem <= '0';
+  irLoad <= '0';
+  isShadow <= '0';
 -- ]
 
 -- [ main process
 
+  nextState <= currentState;
   case (currentState) is
     when reset =>
       report "[amin]: reset";
@@ -165,7 +172,6 @@ begin
       irLoad <= '1';
       readMem <= '1';
       writeMem <= '0';
-      isFromMemory <= '0';
       nextState <= readLoop;
 
     when readLoop =>
@@ -174,13 +180,6 @@ begin
         nextState <= readLoopReady;
       else
         nextState <= readLoop;
-        if update = 'U' then
-          update <= '0';
-        elsif update = '0' then
-          update <= '1';
-        else
-          update <= '0';
-        end if;
       end if;
 
     when readLoopReady =>      
@@ -190,11 +189,6 @@ begin
     
     when execute =>
       report "[amin]: execute";
-       if shadow = '1' then
-        isShadow <='1';
-      else
-        isShadow <= '0';
-      end if;
       case(instruction(15 downto 12)) is
         when "0000" =>
           case(instruction(11 downto 8)) is
@@ -346,62 +340,78 @@ begin
         when myAnd =>
           report "[amin]: execute and";
           andOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRF;
 
         when myOr =>
           report "[amin]: execute or";
           orOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRF;
 
         when myNot =>
           report "[amin]: execute not";
           notOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRF;
 
         when myXor =>
           report "[amin]: execute xor";
           xorOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRF;
 
         when tcm =>
           report "[amin]: execute two complement";
           compOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRF;
 
         when shl =>
           report "[amin]: execute shift left";
           shiftL <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRF;
 
         when shr =>
           report "[amin]: execute shift right";
           shiftR <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRF;
 
         when add =>
           report "[amin]: execute add";
           addOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRF;
 
         when sub =>
           report "[amin]: execute sub";
           subOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRF;
 
         when cmp =>
           report "[amin]: execute compare";
           cmpOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
-          nextState <= executeWriteRF;
+          if shadow = '1' then
+            nextState <= executeShadow;
+          else
+            PCPlus1 <= '1';
+            EnablePC <= '1';
+            nextState <= fetch;
+          end if;
 
         when "1111" =>
           case(instruction(9 downto 8)) is
@@ -440,9 +450,9 @@ begin
             report "[amin]: execute others";   
       end case;
 
-     when executeShadow =>
+    when executeShadow =>
       report "[amin]: executeShadow";
-      --isShadow <= '1';
+      isShadow <= '1';
       case(instruction(7 downto 4)) is
         when "0000" =>
           case(instruction(3 downto 0)) is
@@ -535,62 +545,74 @@ begin
         when myAnd =>
           report "[amin]: execute [shadow] and";
           andOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRFWithoutShadow;
 
         when myOr =>
           report "[amin]: execute [shadow] or";
           orOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRFWithoutShadow;
 
         when myNot =>
           report "[amin]: execute [shadow] not";
           notOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRFWithoutShadow;
 
         when myXor =>
           report "[amin]: execute [shadow] xor";
           xorOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRFWithoutShadow;
 
         when tcm =>
           report "[amin]: execute [shadow] two complement";
           compOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRFWithoutShadow;
 
         when shl =>
           report "[amin]: execute [shadow] shift left";
           shiftL <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRFWithoutShadow;
 
         when shr =>
           report "[amin]: execute [shadow] shift right";
           shiftR <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRFWithoutShadow;
 
         when add =>
           report "[amin]: execute [shadow] add";
           addOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRFWithoutShadow;
 
         when sub =>
           report "[amin]: execute [shadow] sub";
           subOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
           nextState <= executeWriteRFWithoutShadow;
 
         when cmp =>
           report "[amin]: execute [shadow] compare";
           cmpOp <= '1';
+          flagLoad <= '1';
           readMem <= '0';
-          nextState <= executeWriteRFWithoutShadow;   
+          PCPlus1 <= '1';
+          EnablePC <= '1';
+          nextState <= fetch;
         when others =>
           report "[amin]: execute [shadow] others second case";
       end case;
@@ -609,6 +631,7 @@ begin
 
     when executeWriteRFWithoutShadow =>
       report "[amin]: execute write to RF without shadow";
+      isShadow <= '1';
       lw <= '1';
       hw <= '1';
       PCPlus1 <= '1';

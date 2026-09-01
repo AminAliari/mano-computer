@@ -53,7 +53,6 @@ begin
     ExternalReset <= '1';
     wait for 10 ns;
     ExternalReset <= '0';
-    readMem <= '1';
     wait;
   end process test;
 end architecture;

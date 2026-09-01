@@ -15,5 +15,5 @@ architecture imp of comparator is
 
 begin
   c <= '1' when a > b else '0';
-  z <= '0' when a > b else '1';
+  z <= '1' when a = b else '0';
 end architecture imp;
